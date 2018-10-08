@@ -146,6 +146,8 @@ module.exports = class PlayLevelView extends RootView
     @supermodel.shouldSaveBackups = givenSupermodel.shouldSaveBackups
 
     serializedLevel = @level.serialize {@supermodel, @session, @otherSession, headless: false, sessionless: false}
+    if me.constrainHeroHealth()
+      serializedLevel.constrainHeroHealth = true
     @god?.setLevel serializedLevel
     if @world
       @world.loadFromLevel serializedLevel, false
@@ -296,7 +298,10 @@ module.exports = class PlayLevelView extends RootView
     return if @level.isType('web-dev')
     return @waitingToSetUpGod = true unless @god
     @waitingToSetUpGod = undefined
-    @god.setLevel @level.serialize {@supermodel, @session, @otherSession, headless: false, sessionless: false}
+    serializedLevel = @level.serialize {@supermodel, @session, @otherSession, headless: false, sessionless: false}
+    if me.constrainHeroHealth()
+      serializedLevel.constrainHeroHealth = true
+    @god.setLevel serializedLevel
     @god.setLevelSessionIDs if @otherSession then [@session.id, @otherSession.id] else [@session.id]
     @god.setWorldClassMap @world.classMap
 
@@ -633,8 +638,10 @@ module.exports = class PlayLevelView extends RootView
   showVictory: (options={}) ->
     return if @level.hasLocalChanges()  # Don't award achievements when beating level changed in level editor
     return if @level.isType('game-dev') and @level.get('shareable') and not options.manual
+    return if @showVictoryHandlingInProgress
+    @showVictoryHandlingInProgress=true
     @endHighlight()
-    options = {level: @level, supermodel: @supermodel, session: @session, hasReceivedMemoryWarning: @hasReceivedMemoryWarning, courseID: @courseID, courseInstanceID: @courseInstanceID, world: @world}
+    options = {level: @level, supermodel: @supermodel, session: @session, hasReceivedMemoryWarning: @hasReceivedMemoryWarning, courseID: @courseID, courseInstanceID: @courseInstanceID, world: @world, parent: @}
     ModalClass = if @level.isType('hero', 'hero-ladder', 'hero-coop', 'course', 'course-ladder', 'game-dev', 'web-dev') then HeroVictoryModal else VictoryModal
     ModalClass = CourseVictoryModal if @isCourseMode() or me.isSessionless()
     if @level.isType('course-ladder')
@@ -643,6 +650,9 @@ module.exports = class PlayLevelView extends RootView
     ModalClass = PicoCTFVictoryModal if window.serverConfig.picoCTF
     victoryModal = new ModalClass(options)
     @openModalView(victoryModal)
+    victoryModal.once 'hidden', =>
+      @showVictoryHandlingInProgress=false
+
     if me.get('anonymous')
       window.nextURL = '/play/' + (@level.get('campaign') ? '')  # Signup will go here on completion instead of reloading.
 
@@ -693,6 +703,7 @@ module.exports = class PlayLevelView extends RootView
     if @world.age > 0 and @willUpdateStudentGoals
       @willUpdateStudentGoals = false
       @updateStudentGoals()
+      @updateLevelName()
 
     @world.scripts = scripts
     thangTypes = @supermodel.getModels(ThangType)
@@ -717,15 +728,23 @@ module.exports = class PlayLevelView extends RootView
     @$el.addClass('real-time').focus()
     @willUpdateStudentGoals = true
     @updateStudentGoals()
+    @updateLevelName()
     @onWindowResize()
     @realTimePlaybackWaitingForFrames = true
 
   updateStudentGoals: ->
     return unless @level.isType('game-dev')
-    @studentGoals = @world.thangMap['Hero Placeholder'].stringGoals
-    @studentGoals = @studentGoals?.map((g) -> JSON.parse(g))
+    # Set by users. Defined in `game.GameUI` component in the level editor.
+    if @world.uiText?.directions?.length?
+      @studentGoals = @world.uiText.directions.map((direction) -> {type: "user_defined", direction})
+    else
+      @studentGoals = @world.thangMap['Hero Placeholder'].stringGoals?.map((g) -> JSON.parse(g))
     @renderSelectors('#how-to-play-game-dev-panel')
     @$('#how-to-play-game-dev-panel').removeClass('hide')
+
+  updateLevelName: () ->
+    if @world.uiText?.levelName
+      @controlBar.setLevelName(@world.uiText.levelName)
 
   onRealTimePlaybackEnded: (e) ->
     return unless @$el.hasClass 'real-time'

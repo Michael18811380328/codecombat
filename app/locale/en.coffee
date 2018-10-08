@@ -538,7 +538,7 @@
     tip_toggle_play: "Toggle play/paused with Ctrl+P."
     tip_scrub_shortcut: "Use Ctrl+[ and Ctrl+] to rewind and fast-forward."
     tip_guide_exists: "Click the guide, inside game menu (at the top of the page), for useful info."
-    tip_open_source: "CodeCombat is part of the open source community!"     # {change}
+    tip_open_source: "CodeCombat is part of the open source community!"
     tip_tell_friends: "Enjoying CodeCombat? Tell your friends about us!"
     tip_beta_launch: "CodeCombat launched its beta in October, 2013."
     tip_think_solution: "Think of the solution, not the problem."
@@ -613,6 +613,7 @@
   apis:
     methods: "Methods"
     events: "Events"
+    handlers: "Handlers"
     spawnable: "Spawnable"
     html: "HTML"
     math: "Math"
@@ -939,7 +940,7 @@
     cat_title: "Game Designer"
     scott_title: "Cofounder, Software Engineer"
     maka_title: "Customer Advocate"
-    robin_title: "Product Manager"
+    robin_title: "Senior Product Manager" # {change}
     nolan_title: "Sales Manager"
     lisa_title: "Business Development Manager"
     sean_title: "Territory Manager"
@@ -948,7 +949,7 @@
     david_title: "Marketing Lead"
     retrostyle_title: "Illustration"
     retrostyle_blurb: "RetroStyle Games"
-    bryukh_title: "Game Designer"
+    bryukh_title: "Gameplay Developer"
     bryukh_blurb: "Constructs puzzles"
     daniela_title: "Content Crafter"
     daniela_blurb: "Creates stories"
@@ -1937,7 +1938,7 @@
 
   contribute:
     page_title: "Contributing"
-    intro_blurb: "CodeCombat is part of the open source community! Hundreds of dedicated players have helped us build the game into what it is today. Join us and write the next chapter in CodeCombat's quest to teach the world to code!"   # {change}
+    intro_blurb: "CodeCombat is part of the open source community! Hundreds of dedicated players have helped us build the game into what it is today. Join us and write the next chapter in CodeCombat's quest to teach the world to code!"
     alert_account_message_intro: "Hey there!"
     alert_account_message: "To subscribe for class emails, you'll need to be logged in first."
     archmage_introduction: "One of the best parts about building games is they synthesize so many different things. Graphics, sound, real-time networking, social networking, and of course many of the more common aspects of programming, from low-level database management, and server administration to user facing design and interface building. There's a lot to do, and if you're an experienced programmer with a hankering to really dive into the nitty-gritty of CodeCombat, this class might be for you. We would love to have your help building the best programming game ever."
@@ -2374,7 +2375,7 @@
     contributor_description_prefix: "All contributions, both on the site and on our GitHub repository, are subject to our"
     cla_url: "CLA"
     contributor_description_suffix: "to which you should agree before contributing."
-    code_title: "Client-Side Code - MIT" # {change}
+    code_title: "Client-Side Code - MIT"
     client_code_description_prefix: "All client-side code for codecombat.com in the public GitHub repository and in the codecombat.com database, is licensed under the"
     mit_license_url: "MIT license"
     code_description_suffix: "This includes all code in Systems and Components that are made available by CodeCombat for the purpose of creating levels."
@@ -2577,13 +2578,13 @@
 
   parent_landing:
     slogan_quote: '"CodeCombat is really fun, and you learn a lot."'
-    quote_attr: "5th Grader, Oakland"
+    quote_attr: "5th Grader, Oakland, CA" # {change}
     refer_teacher: "Refer a Teacher"
     focus_quote: "Unlock your child's future"
     value_head1: "The most engaging way to learn typed code"
     value_copy1: "CodeCombat is child’s personal tutor. Covering material aligned with national curriculum standards, your child will program algorithms, build websites and even design their own games."
     value_head2: "Building critical skills for the 21st century"
-    value_copy2: "Your kids will learn how to navigate and become citizens in the digital world. CodeCombat is a problem solving that enhances your child’s critical thinking and resilience."
+    value_copy2: "Your kids will learn how to navigate and become citizens in the digital world. CodeCombat is a solution that enhances your child’s critical thinking and resilience."
     value_head3: "Heroes that your child will love"
     value_copy3: "We know how important fun and engagement is for the developing brain, so we’ve packed in as much learning as we can while wrapping it up in a game they'll love."
     dive_head1: "Not just for software engineers"
@@ -2620,6 +2621,7 @@
     mission1_copy: "Our education specialists work closely with teachers to meet children where they are in the educational landscape. Kids learn skills that can be applied outside of the game because they learn how to solve problems, no matter what their learning style is."
     mission2_copy: "A 2016 survey showed that 64% of girls in 3-5th grade want to learn how to code. There were 7 million job openings in 2015 required coding skills. We built CodeCombat because every child should be given a chance to create their best future."
     mission3_copy: "At CodeCombat, we’re parents. We’re coders. We’re educators. But most of all, we’re people who believe in giving our kids the best opportunity for success in whatever it is they decide to do."
+  
   parent_modal:
     refer_teacher: "Refer Teacher"
     name: "Your Name"
@@ -2628,3 +2630,23 @@
     message: "Message"
     custom_message: "I just found CodeCombat and thought it'd be a great program for your classroom! It's a computer science learning platform with standards-aligned curriculum.\n\nComputer literacy is so important and I think this would be a great way to get students engaged in learning to code."
     send: "Send Email"
+
+  hoc_2018:
+    learn_more_copy: "CodeCombat is a comprehensive program built for all teachers. Want to take Hour of Code to the next level?"
+    learn_more: "Learn More"
+    page_heading: "Teach your students how to build their own arcade game!"
+    get_started: "Get Started:"
+    download_lesson: "Download Lesson Plan:"
+    lesson_copy: "This PDF will take you through how to introduce and close out the Hour of Code lesson, the learning objectives, key terms and concepts, and discussion questions to inspire more coding curiosity."
+    download_pdf: "Download PDF"
+    ready_play: "Ready to play?"
+    play_activity: "Play Activity"
+    about: "About CodeCombat:"
+    about_copy: "CodeCombat is a game-based computer science program for teaching real Python and JavaScript. CodeCombat’s standards-aligned curriculum is built around a game that students love. Over 12 million students have learned to code on CodeCombat!"
+    point1: "✓ Scaffolded"
+    point2: "✓ Differentiated"
+    point3: "✓ Formative and Summative Assessments"
+    point4: "✓ Project-based courses"
+    point5: "✓ Student tracking"
+    point6: "✓ Full lesson plans"
+    request_demo: "Create Teacher Account"
