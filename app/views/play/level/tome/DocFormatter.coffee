@@ -53,12 +53,13 @@ module.exports = class DocFormatter
       @doc.shortName = @doc.shorterName = @doc.title = @doc.name
     else
       @doc.owner ?= 'this'
-      ownerName = @doc.ownerName = if @doc.owner isnt 'this' then @doc.owner else switch @options.language
+      ownerName = if @doc.owner isnt 'this' then @doc.owner else switch @options.language
         when 'python', 'lua' then (if @options.useHero then 'hero' else 'self')
         when 'java' then 'hero'
         when 'coffeescript' then '@'
         else (if @options.useHero then 'hero' else 'this')
       ownerName = 'game' if @options.level.isType('game-dev')
+      @doc.ownerName = ownerName
       if @doc.type is 'function'
         [docName, args] = @getDocNameAndArguments()
         argNames = args.join ', '
@@ -81,6 +82,12 @@ module.exports = class DocFormatter
       if @doc.type in ['event', 'handler']
         @doc.shortName = @doc.name
         @doc.shorterName = @doc.name
+      if @doc.type is 'property'
+        @doc.shortName = @doc.name.split(".").pop() or @doc.name
+        @doc.shorterName = @doc.shortName
+      if @doc.owner is 'ui'
+        @doc.shortName = @doc.shortName.replace /^game./, ''
+        @doc.shorterName = @doc.shortName
       if @options.language is 'javascript'
         @doc.shorterName = @doc.shortName.replace ';', ''
         if @doc.owner is 'this' or @options.tabbify or ownerName is 'game'

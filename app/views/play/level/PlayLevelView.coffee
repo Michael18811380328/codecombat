@@ -45,10 +45,12 @@ VictoryModal = require './modal/VictoryModal'
 HeroVictoryModal = require './modal/HeroVictoryModal'
 CourseVictoryModal = require './modal/CourseVictoryModal'
 PicoCTFVictoryModal = require './modal/PicoCTFVictoryModal'
+HoC2018VictoryModal = require 'views/special_event/HoC2018VictoryModal'
 InfiniteLoopModal = require './modal/InfiniteLoopModal'
 LevelSetupManager = require 'lib/LevelSetupManager'
 ContactModal = require 'views/core/ContactModal'
 HintsView = require './HintsView'
+SurfaceContextMenuView = require './SurfaceContextMenuView'
 HintsState = require './HintsState'
 WebSurfaceView = require './WebSurfaceView'
 SpellPaletteView = require './tome/SpellPaletteView'
@@ -100,12 +102,17 @@ module.exports = class PlayLevelView extends RootView
     'click #stop-cinematic-playback-button': -> Backbone.Mediator.publish 'playback:stop-cinematic-playback', {}
     'click #fullscreen-editor-background-screen': (e) -> Backbone.Mediator.publish 'tome:toggle-maximize', {}
     'click .contact-link': 'onContactClicked'
+    'contextmenu #webgl-surface': 'onSurfaceContextMenu'
     'click': 'onClick'
 
   onClick: ->
     # workaround to get users out of permanent idle status
     if application.userIsIdle
       application.idleTracker.onVisible()
+    
+    #hide context menu if visible
+    if @$('#surface-context-menu-view').is(":visible")
+      Backbone.Mediator.publish 'level:surface-context-menu-hide', {}
 
   shortcuts:
     'ctrl+s': 'onCtrlS'
@@ -172,7 +179,9 @@ module.exports = class PlayLevelView extends RootView
       not e.level.isType('course-ladder')
 
       # TODO: Add a general way for standalone levels to be accessed by students, teachers
-      e.level.get('slug') isnt 'peasants-and-munchkins'
+      e.level.get('slug') not in ['peasants-and-munchkins',
+                                  'game-dev-2-tournament-project',
+                                  'game-dev-3-tournament-project']
     ])
       return _.defer -> application.router.redirectHome()
 
@@ -349,6 +358,7 @@ module.exports = class PlayLevelView extends RootView
     @insertSubView new LevelDialogueView {level: @level, sessionID: @session.id}
     @insertSubView new ChatView levelID: @levelID, sessionID: @session.id, session: @session
     @insertSubView new ProblemAlertView session: @session, level: @level, supermodel: @supermodel
+    @insertSubView new SurfaceContextMenuView session: @session, level: @level 
     @insertSubView new DuelStatsView level: @level, session: @session, otherSession: @otherSession, supermodel: @supermodel, thangs: @world.thangs, showsGold: goldInDuelStatsView if @level.isType('hero-ladder', 'course-ladder')
     @insertSubView @controlBar = new ControlBarView {worldName: utils.i18n(@level.attributes, 'name'), session: @session, level: @level, supermodel: @supermodel, courseID: @courseID, courseInstanceID: @courseInstanceID}
     @insertSubView @hintsView = new HintsView({ @session, @level, @hintsState }), @$('.hints-view')
@@ -648,6 +658,15 @@ module.exports = class PlayLevelView extends RootView
       ModalClass = CourseVictoryModal
       options.courseInstanceID = utils.getQueryVariable('course-instance') or utils.getQueryVariable('league')
     ModalClass = PicoCTFVictoryModal if window.serverConfig.picoCTF
+    if @level.get("slug") is "code-play-share" and @level.get('shareable')
+      hocModal = new HoC2018VictoryModal({
+        shareURL: "#{window.location.origin}/play/#{@level.get('type')}-level/#{@session.id}",
+        campaign: @level.get("campaign")
+      })
+      @openModalView(hocModal)
+      hocModal.once "hidden", =>
+        @showVictoryHandlingInProgress = false
+      return
     victoryModal = new ModalClass(options)
     @openModalView(victoryModal)
     victoryModal.once 'hidden', =>
@@ -690,6 +709,14 @@ module.exports = class PlayLevelView extends RootView
     window.screenshotURL = contactModal.screenshotURL
     $.ajax '/file', type: 'POST', data: body, success: (e) ->
       contactModal.updateScreenshot?()
+
+  onSurfaceContextMenu: (e) ->
+    return unless @surface.showCoordinates and ( navigator.clipboard or document.queryCommandSupported('copy') )
+    e?.preventDefault?()
+    pos = x: e.clientX, y: e.clientY
+    wop = @surface.coordinateDisplay.lastPos
+    Backbone.Mediator.publish 'level:surface-context-menu-pressed', posX: pos.x, posY: pos.y, wopX: wop.x, wopY: wop.y
+    
 
   # Dynamic sound loading
 
@@ -735,7 +762,7 @@ module.exports = class PlayLevelView extends RootView
   updateStudentGoals: ->
     return unless @level.isType('game-dev')
     # Set by users. Defined in `game.GameUI` component in the level editor.
-    if @world.uiText?.directions?.length?
+    if @world.uiText?.directions?.length
       @studentGoals = @world.uiText.directions.map((direction) -> {type: "user_defined", direction})
     else
       @studentGoals = @world.thangMap['Hero Placeholder'].stringGoals?.map((g) -> JSON.parse(g))

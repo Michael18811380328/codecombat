@@ -26,11 +26,19 @@ module.exports = class User extends CocoModel
   @schema: require 'schemas/models/user'
   urlRoot: '/db/user'
   notyErrors: false
+  PERMISSIONS: {
+    COCO_ADMIN: 'admin',
+    SCHOOL_ADMINISTRATOR: 'schoolAdministrator',
+    ARTISAN: 'artisan',
+    GOD_MODE: 'godmode',
+    LICENSOR: 'licensor'
+  }
 
-  isAdmin: -> 'admin' in @get('permissions', true)
-  isLicensor: -> 'licensor' in @get('permissions', true)
-  isArtisan: -> 'artisan' in @get('permissions', true)
-  isInGodMode: -> 'godmode' in @get('permissions', true)
+  isAdmin: -> @PERMISSIONS.COCO_ADMIN in @get('permissions', true)
+  isLicensor: -> @PERMISSIONS.LICENSOR in @get('permissions', true)
+  isArtisan: -> @PERMISSIONS.ARTISAN in @get('permissions', true)
+  isInGodMode: -> @PERMISSIONS.GOD_MODE in @get('permissions', true)
+  isSchoolAdmin: -> @PERMISSIONS.SCHOOL_ADMINISTRATOR in @get('permissions', true)
   isAnonymous: -> @get('anonymous', true)
   isSmokeTestUser: -> User.isSmokeTestUser(@attributes)
   displayName: -> @get('name', true)
@@ -500,6 +508,7 @@ module.exports = class User extends CocoModel
   allowStudentHeroPurchase: -> features?.classroomItems ? false and @isStudent()
   canBuyGems: -> not (features?.chinaUx ? false)
   constrainHeroHealth: -> features?.classroomItems ? false and @isStudent()
+  promptForClassroomSignup: -> not (features?.chinaUx ? false or window.serverConfig?.codeNinjas ? false or features?.brainPop ? false)
   showAvatarOnStudentDashboard: -> not (features?.classroomItems ? false) and @isStudent()
   showGearRestrictionsInClassroom: -> features?.classroomItems ? false and @isStudent()
   showGemsAndXp: -> features?.classroomItems ? false and @isStudent()
@@ -507,6 +516,14 @@ module.exports = class User extends CocoModel
   skipHeroSelectOnStudentSignUp: -> features?.classroomItems ? false
   useDexecure: -> not (features?.chinaInfra ? false)
   useSocialSignOn: -> not (features?.chinaUx ? false)
+  isTarena: -> features?.Tarena ? false
+  useTarenaLogo: -> @isTarena()
+  hideTopRightNav: -> @isTarena()
+  hideFooter: -> @isTarena()
+  useGoogleClassroom: -> not (features?.chinaUx ? false) and me.get('gplusID')?   # if signed in using google SSO
+  useGoogleAnalytics: -> not (features?.chinaInfra ? false)
+  # This flag is set globally for our China server.
+  showChinaVideo: -> features?.china ? false
 
 
 tiersByLevel = [-1, 0, 0.05, 0.14, 0.18, 0.32, 0.41, 0.5, 0.64, 0.82, 0.91, 1.04, 1.22, 1.35, 1.48, 1.65, 1.78, 1.96, 2.1, 2.24, 2.38, 2.55, 2.69, 2.86, 3.03, 3.16, 3.29, 3.42, 3.58, 3.74, 3.89, 4.04, 4.19, 4.32, 4.47, 4.64, 4.79, 4.96,

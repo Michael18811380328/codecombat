@@ -166,3 +166,40 @@ describe 'CoursesHelper', ->
         progress = progressData.get {@classroom, @course, level: @practiceLevel}
         expect(progress.completed).toBe false
         expect(progress.started).toBe true
+
+  describe 'hasUserCompletedCourse', ->
+    it 'user completed a single level but hasn\'t completed all levels', ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse({'a': true}, new Set(['a', 'b']))
+      expect(userStarted).toBe true
+      expect(allComplete).toBe false
+      expect(levelsCompleted).toEqual 1
+
+    it 'user completed all levels', ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse({'a': true, 'b': true}, new Set(['a', 'b']))
+      expect(userStarted).toBe true
+      expect(allComplete).toBe true
+      expect(levelsCompleted).toEqual 2
+
+    it 'undefined user state passed in', ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse(undefined, new Set(['a']))
+      expect(userStarted).toBe false
+      expect(allComplete).toBe false
+      expect(levelsCompleted).toEqual 0
+
+    it "User hasn't completed all levels", ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse({'a': true, 'b': false}, new Set(['a', 'b']))
+      expect(userStarted).toBe true
+      expect(allComplete).toBe false
+      expect(levelsCompleted).toEqual 1
+
+    it "User has completed required levels", ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse({'a': true, 'b': false}, new Set(['a']))
+      expect(userStarted).toBe true
+      expect(allComplete).toBe true
+      expect(levelsCompleted).toEqual 1
+
+    it "User has completed different levels", ->
+      [userStarted, allComplete, levelsCompleted] = helper.hasUserCompletedCourse({'a': true, 'b': true}, new Set(['c']))
+      expect(userStarted).toBe false
+      expect(allComplete).toBe false
+      expect(levelsCompleted).toEqual 0

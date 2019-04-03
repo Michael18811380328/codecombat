@@ -111,7 +111,7 @@ module.exports = class SpellView extends CocoView
     @ace.setTheme 'ace/theme/textmate'
     @ace.setDisplayIndentGuides false
     @ace.setShowPrintMargin false
-    @ace.setShowInvisibles aceConfig.invisibles
+    @ace.setShowInvisibles false
     @ace.setBehavioursEnabled aceConfig.behaviors
     @ace.setAnimatedScroll true
     @ace.setShowFoldWidgets false
@@ -650,6 +650,10 @@ module.exports = class SpellView extends CocoView
       # Expand it to bottom of tome if too short.
       #newHeight = Math.max @spellPaletteHeight, tomeHeight - newTop + 10
       #spellPaletteView.css('height', newHeight) if @spellPaletteHeight isnt newHeight
+    if @firstEntryToScrollLine? and @ace?.renderer?.$cursorLayer?.config
+      @ace.scrollToLine @firstEntryToScrollLine, true, true
+      @firstEntryToScrollLine = undefined
+
 
   hideProblemAlert: ->
     return if @destroyed
@@ -698,6 +702,8 @@ module.exports = class SpellView extends CocoView
     @lockDefaultCode true
     @recompile cast
     Backbone.Mediator.publish 'tome:spell-loaded', spell: @spell
+    @hasSetInitialCursor = false
+    @highlightCurrentLine()
     @updateLines()
 
   recompile: (cast=true, realTime=false, cinematic=false) ->
@@ -1234,6 +1240,7 @@ module.exports = class SpellView extends CocoView
           unless @hasSetInitialCursor
             @hasSetInitialCursor = true
             @ace.navigateTo index, line.match(/\S/)?.index ? line.length
+            @firstEntryToScrollLine = index
 
         # Shift pointer right based on current indentation
         # TODO: tabs probably need different horizontal offsets than spaces
@@ -1299,8 +1306,7 @@ module.exports = class SpellView extends CocoView
 
   onChangeEditorConfig: (e) ->
     aceConfig = me.get('aceConfig') ? {}
-    @ace.setDisplayIndentGuides aceConfig.indentGuides # default false
-    @ace.setShowInvisibles aceConfig.invisibles # default false
+    @ace.setBehavioursEnabled aceConfig.behaviors
     @ace.setKeyboardHandler @keyBindings[aceConfig.keyBindings ? 'default']
     @updateAutocomplete(aceConfig.liveCompletion ? false)
 

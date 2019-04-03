@@ -16,6 +16,10 @@ _.extend ClassroomSchema.properties,
   averageStudentExp: { type: 'string' }
   ageRangeMin: { type: 'string' }
   ageRangeMax: { type: 'string' }
+  classDateStart: c.stringDate()
+  classDateEnd: c.stringDate()
+  classesPerWeek: { type: 'string' }
+  minutesPerClass: { type: 'string' }
   archived:
     type: 'boolean'
     default: false
@@ -37,6 +41,7 @@ _.extend ClassroomSchema.properties,
       position: c.point2d()
     }
   }
+  googleClassroomId: { title: 'Google classroom id', type: 'string' }
   settings: c.object {title: 'Classroom Settings', required: []}, {
     optionsEditable: { type: 'boolean', description: 'Allow teacher to use these settings.', default: false }
     map: { type: 'boolean', description: 'Classroom map.', default: false }

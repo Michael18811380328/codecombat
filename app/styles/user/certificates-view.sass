@@ -1,3 +1,6 @@
+.style-flat
+  padding-top: 0
+
 #certificates-view
   background-color: white
   text-align: center
@@ -12,6 +15,9 @@
 
   @media print
     -webkit-print-color-adjust: exact
+    html, body
+      height: 100%
+      overflow: hidden
 
   .menu
     position: fixed
@@ -53,13 +59,6 @@
       right: 0
       z-index: 1
       letter-spacing: 1pt
-
-      &.in-progress
-        .course-ribbon, .concepts-learned
-          opacity: 0.4
-
-        .hero-pose, .hero-signature
-          opacity: 0.2
 
     .certificate-text-container
       width: 7in

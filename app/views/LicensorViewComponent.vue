@@ -1,15 +1,16 @@
-<template lang="jade">
+<template lang="pug">
 div.licensor.container(v-if="!$store.getters['me/isAdmin'] && !$store.getters['me/isLicensor']")
   h4 You must be logged in as a licensor or admin to view this page.
 div.licensor.container(v-else)
   h3 Create New License
   form#prepaid-form
-    h4.small(style="max-width: 700px") *All licenses granted after July 9, 2018 start at 12am PT on the start date and end at 11:59pm PT on the end date listed. All licenses that were granted before that date start and end at 5pm PT on the date listed.
+    h4.small(style="max-width: 700px" v-if="timeZone == 'Asia/Shanghai'") *All licenses granted after Oct 29, 2018 start at 12am CT on the start date and end at 11:59pm CT on the end date listed. All licenses that were granted before that date start and end at 3pm CT on the date listed.
+    h4.small(style="max-width: 700px" v-else) *All licenses granted after July 9, 2018 start at 12am PT on the start date and end at 11:59pm PT on the end date listed. All licenses that were granted before that date start and end at 5pm PT on the date listed.
     .form-group
       label.small
-      | Teacher email
+      | Teacher email or Comma separated list of emails
       =" "
-      input.form-control(type="email", name="email")
+      input.form-control(type="text", name="email")
     .form-group
       label.small
       span Number of Licenses
@@ -26,7 +27,10 @@ div.licensor.container(v-else)
       =" "
       input(type="date", v-bind:value="timestampEnd", name="endDate")
     .form-group
-      button.btn.btn-primary(v-on:click.prevent="onCreateLicense", name="addLicense") Add Licenses
+      div
+        label.small(v-if="createLicenseIsLoading")
+        span(v-if="createLicenseIsLoading") {{ createLicenseProgress.done }} / {{ createLicenseProgress.total }} emails processed
+      button.btn.btn-primary(v-on:click.prevent="onCreateLicense", name="addLicense" v-bind:class="{'disabled' : !!createLicenseIsLoading}") Add Licenses
 
   h3 Show Licenses
   form#prepaid-show-form
@@ -42,8 +46,10 @@ div.licensor.container(v-else)
       th.border ID
       th.border Creator
       th.border Type
-      th.border Start (PT)
-      th.border End (PT)
+      th.border(v-if="timeZone == 'Asia/Shanghai'") Start (CT)
+      th.border(v-else) Start (PT)
+      th.border(v-if="timeZone == 'Asia/Shanghai'") End (CT)
+      th.border(v-else) End (PT)
       th.border Used
     tr(v-for="prepaid in prepaids")
       td.border {{prepaid._id}}
@@ -279,9 +285,16 @@ module.exports = Vue.extend({
     ownedClients: []
     oauthProvider: []
     defaultClientVal: clientSchema.properties
+    timeZone: 'America/Los_Angeles'
+    createLicenseProgress: {
+      done: 0,
+      total: 0
+    }
 
   created: ->
     return unless me.isAdmin() or me.isLicensor()
+    if features?.chinaInfra
+      this.timeZone = 'Asia/Shanghai'
     api.apiClients.getAll().then (clients) =>
       @ownedClients = clients
       $.ajax
@@ -320,35 +333,43 @@ module.exports = Vue.extend({
       data = @runValidation(el, requiredProps)
       unless data
         return
-      unless forms.validateEmail(data.email)
-        forms.setErrorToProperty(el, 'email', 'Please enter a valid email address')
-        return
       unless data.maxRedeemers > 0
         forms.setErrorToProperty(el, 'maxRedeemers', 'No of licenses should be greater than 0')
         return
       unless data.endDate > data.startDate
         forms.setErrorToProperty(el, 'endDate', 'End Date should be greater than Start Date')
         return
-      try
-        email = data.email
-        user = yield api.users.getByEmail({email})
-        attrs = data
-        attrs.maxRedeemers = parseInt(data.maxRedeemers)
-        attrs.endDate = attrs.endDate + " " + "23:59"   # Otherwise, it ends at 12 am by default which does not include the date indicated
-        attrs.startDate = moment.timezone.tz(attrs.startDate, "America/Los_Angeles").toISOString()
-        attrs.endDate = moment.timezone.tz(attrs.endDate, "America/Los_Angeles").toISOString()
-        _.extend(attrs, {
-          type: 'course'
-          creator: user._id
-          properties:
-            licensorAdded: me.id
-        })
-        prepaid = yield api.prepaids.post(attrs)
-        noty text: 'License created', timeout: 3000, type: 'success'
-      catch err
-        console.log(err)
-        forms.setErrorToProperty(el, 'addLicense', 'Something went wrong')
-        return
+
+      emails = data.email.split(',').map((s) -> s.trim())
+      @createLicenseProgress.total = emails.length
+      @createLicenseProgress.done = 0
+      errors = []
+      for email in emails
+        @createLicenseProgress.done += 1
+        unless forms.validateEmail(email)
+          errors.push("#{email} - invalid email")
+          continue
+        try
+          user = yield api.users.getByEmail({email})
+          attrs = data
+          attrs.maxRedeemers = parseInt(data.maxRedeemers)
+          attrs.endDate = attrs.endDate + " " + "23:59"   # Otherwise, it ends at 12 am by default which does not include the date indicated
+          attrs.startDate = moment.timezone.tz(attrs.startDate, this.timeZone).toISOString()
+          attrs.endDate = moment.timezone.tz(attrs.endDate, this.timeZone).toISOString()
+          _.extend(attrs, {
+            type: 'course'
+            creator: user._id
+            properties:
+              licensorAdded: me.id
+          })
+          prepaid = yield api.prepaids.post(attrs)
+          noty text: "License created for #{email}", timeout: 2000, type: 'success'
+        catch err
+          console.log(err)
+          errors.push("#{email} - #{err?.message || 'unknown error. Check console.'}")
+
+      if errors.length
+        forms.setErrorToProperty(el, 'addLicense', "Error<br />#{errors.join("<br />")}")
 
     onShowLicense: co.wrap ->
       el = $('#prepaid-show-form')
@@ -368,8 +389,8 @@ module.exports = Vue.extend({
           forms.setErrorToProperty(el, 'showLicense', 'No licenses found for this user')
           return
         for prepaid in this.prepaids
-          prepaid.startDate = moment.timezone(prepaid.startDate).tz('America/Los_Angeles').format('l')
-          prepaid.endDate = moment.timezone(prepaid.endDate).tz('America/Los_Angeles').format('l')
+          prepaid.startDate = moment.timezone(prepaid.startDate).tz(this.timeZone).format('l')
+          prepaid.endDate = moment.timezone(prepaid.endDate).tz(this.timeZone).format('l')
           Vue.set(prepaid, 'used' , (prepaid.redeemers || []).length)
 
       catch err
@@ -594,15 +615,17 @@ module.exports = Vue.extend({
 
   computed:
     timestampStart: ->
-        return moment.timezone().tz('America/Los_Angeles').format('YYYY-MM-DD')
+      return moment.timezone().tz(this.timeZone).format('YYYY-MM-DD')
     timestampEnd: ->
-        return moment.timezone().tz('America/Los_Angeles').add(1, 'year').format('YYYY-MM-DD')
+      return moment.timezone().tz(this.timeZone).add(1, 'year').format('YYYY-MM-DD')
+    createLicenseIsLoading: ->
+      return @createLicenseProgress.done != @createLicenseProgress.total
 
 })
 
 </script>
 
 <style lang="sass">
-  .border
-    border: thin solid grey
+.border
+  border: thin solid grey
 </style>

@@ -29,6 +29,7 @@ window.saveAs ?= require 'file-saver/FileSaver.js' # `window.` is necessary for 
 window.saveAs = window.saveAs.saveAs if window.saveAs.saveAs  # Module format changed with webpack?
 TeacherClassAssessmentsTable = require('./TeacherClassAssessmentsTable').default
 PieChart = require('core/components/PieComponent').default
+GoogleClassroomHandler = require('core/social-handlers/GoogleClassroomHandler')
 
 { STARTER_LICENSE_COURSE_IDS } = require 'core/constants'
 
@@ -59,6 +60,7 @@ module.exports = class TeacherClassView extends RootView
     'keyup #student-search': 'onKeyPressStudentSearch'
     'change .course-select, .bulk-course-select': 'onChangeCourseSelect'
     'click a.student-level-progress-dot': 'onClickStudentProgressDot'
+    'click .sync-google-classroom-btn': 'onClickSyncGoogleClassroom'
 
   getInitialState: ->
     {
@@ -702,8 +704,15 @@ module.exports = class TeacherClassView extends RootView
       if status is 'enrolled' and student.prepaidType() is 'course'
         prepaid = student.makeCoursePrepaid()
         prepaid.revoke(student, {
-          success: =>
-            student.unset('coursePrepaid')
+          # The for loop completes before the success callback for the first student executes.
+          # So, the `student` will be the last student when the callback executes.
+          # Therefore, using a self calling anonymous function for the success callback
+          # to retain the student data for each iteration.
+          # Reference: https://www.pluralsight.com/guides/javascript-callbacks-variable-scope-problem
+          success: (() ->
+            st = student
+            return -> st.unset('coursePrepaid')
+          )()
           error: (prepaid, jqxhr) =>
             msg = jqxhr.responseJSON.message
             noty text: msg, layout: 'center', type: 'error', killer: true, timeout: 3000
@@ -778,3 +787,42 @@ module.exports = class TeacherClassView extends RootView
     topScores = LevelSession.getTopScores({level: level.toJSON(), session: session.toJSON()}) 
     topScore = _.find(topScores, {type: scoreType})
     return topScore
+
+  shouldShowGoogleClassroomButton: ->
+    me.useGoogleClassroom() && @classroom.isGoogleClassroom()
+
+  onClickSyncGoogleClassroom: (e) ->
+    $('.sync-google-classroom-btn').text("Syncing...")
+    $('.sync-google-classroom-btn').attr('disabled', true)
+    application.gplusHandler.loadAPI({
+      success: =>
+        application.gplusHandler.connect({
+          scope: GoogleClassroomHandler.scopes
+          success: =>
+            @syncGoogleClassroom()
+          error: =>
+            $('.sync-google-classroom-btn').text($.i18n.t('teacher.sync_google_classroom'))
+            $('.sync-google-classroom-btn').attr('disabled', false)
+        })
+    })
+
+  syncGoogleClassroom: ->
+    GoogleClassroomHandler.importStudentsToClassroom(@classroom)
+    .then (importedMembers) =>
+      if importedMembers.length > 0
+        console.debug("Students imported to classroom:", importedMembers)
+
+        if @students.length == 0
+          @students = new Users(importedMembers)
+          @state.set('students', @students)
+        for course in @courses.models
+          continue if not course.get('free')
+          courseInstance = @courseInstances.findWhere({classroomID: @classroom.get("_id"), courseID: course.id})
+          if courseInstance
+            importedMembers.forEach((i) => courseInstance.get("members").push(i._id))  
+        @fetchStudents()
+    , (err) =>
+      noty text: err or 'Error in importing students.', layout: 'topCenter', timeout: 3000, type: 'error'
+    .then () =>
+      $('.sync-google-classroom-btn').text($.i18n.t('teacher.sync_google_classroom'))
+      $('.sync-google-classroom-btn').attr('disabled', false)

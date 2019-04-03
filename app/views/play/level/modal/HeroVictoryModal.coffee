@@ -498,7 +498,7 @@ module.exports = class HeroVictoryModal extends ModalView
       @showOffer navigationEvent
     else
       @hide()
-      Backbone.Mediator.publish 'router:navigate', navigationEvent
+      Backbone.Mediator.publish('router:navigate', navigationEvent)
 
   onClickLeaderboard: (e) ->
     @onClickContinue e, showLeaderboard: true
